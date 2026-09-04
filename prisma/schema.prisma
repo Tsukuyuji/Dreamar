@@ -1,0 +1,169 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  role      String   @default("CORRETOR") // "ADMIN", "GESTOR", "CORRETOR"
+  profile   Profile?
+  goals     Goal[]
+  achievements AgentAchievement[]
+  sales_agents SalesAgent[]
+  sales_created Sale[] @relation("SalesCreatedBy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Profile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  photoUrl     String?
+  jobTitle     String?
+  startDate    DateTime?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("profiles")
+}
+
+model Property {
+  id           String   @id @default(uuid())
+  code         String   @unique
+  title        String
+  address      String?
+  neighborhood String?
+  city         String?
+  type         String?
+  development  String?  // empreendimento
+
+  sales        Sale[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("properties")
+}
+
+model Sale {
+  id                    String   @id @default(uuid())
+  propertyId            String
+  property              Property @relation(fields: [propertyId], references: [id])
+  saleDate              DateTime
+  propertyValue         Float
+  totalVgv              Float
+  commissionPercentage  Float?
+  commissionValue       Float?
+  status                String   // "CONCLUIDA", "PENDENTE", "CANCELADA"
+  type                  String   // "VENDA", "PROPOSTA"
+  notes                 String?
+
+  createdBy             String
+  creator               User     @relation("SalesCreatedBy", fields: [createdBy], references: [id])
+
+  salesAgents           SalesAgent[]
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("sales")
+}
+
+model SalesAgent {
+  id                      String   @id @default(uuid())
+  saleId                  String
+  sale                    Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  agentId                 String
+  agent                   User     @relation(fields: [agentId], references: [id])
+  participationPercentage Float
+  salesQuantity           Float
+  agentVgv                Float
+  agentCommission         Float?
+
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@map("sales_agents")
+}
+
+model Goal {
+  id           String   @id @default(uuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id])
+  type         String   // "MENSAL", "ANUAL"
+  period       String   // e.g. "2026-09" or "2026"
+  salesTarget  Float
+  vgvTarget    Float
+  isCompany    Boolean  @default(false)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("goals")
+}
+
+model Achievement {
+  id           String   @id @default(uuid())
+  name         String
+  description  String?
+  icon         String?
+
+  agents       AgentAchievement[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("achievements")
+}
+
+model AgentAchievement {
+  id             String   @id @default(uuid())
+  agentId        String
+  agent          User     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  achievementId  String
+  achievement    Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  dateEarned     DateTime @default(now())
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("agent_achievements")
+}
+
+model Commission {
+  id                  String   @id @default(uuid())
+  saleId              String   @unique
+  totalCommission     Float
+  agencyCommission    Float
+  brokersCommission   Float
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("commissions")
+}
+
+model CompanySetting {
+  id           String   @id @default(uuid())
+  key          String   @unique
+  value        String
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("company_settings")
+}
